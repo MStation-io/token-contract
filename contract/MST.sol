@@ -1349,11 +1349,6 @@ contract MSTToken is Ownable, Governance {
     using SafeMath for uint256;
     using Address for address;
 
-    struct TraderInfo {
-        uint256 lastTrade;
-        uint256 amount;
-    }
-
     uint8 private constant _decimals = 18;
 
     uint256 private _totalSupply = 10 * 10**6 * 10**_decimals;
@@ -1377,7 +1372,7 @@ contract MSTToken is Ownable, Governance {
     event SetAntiWhaleTime(uint256 antiWhaleStart, uint256 AntiWhaleEnd);
     event SetLiquidPair(address LP);
 
-    constructor() ERC20("MST Token", "MST") {
+    constructor() ERC20("MStation Token", "MST") {
         _balances[_msgSender()] = _balances[_msgSender()].add(_totalSupply);
         emit Transfer(address(0), _msgSender(), _totalSupply);
 
