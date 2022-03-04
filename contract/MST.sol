@@ -1351,7 +1351,7 @@ contract MSTToken is Ownable, Governance {
 
     uint8 private constant _decimals = 18;
 
-    uint256 private _totalSupply = 10 * 10**6 * 10**_decimals;
+    uint256 private _initialSupply = 100 * 10**6 * 10**_decimals;
 
     bool public isAntiWhale;
     uint256 public maxBuy = 3000 * 10**uint256(_decimals);
@@ -1363,8 +1363,8 @@ contract MSTToken is Ownable, Governance {
     address public pancakeLiquidPair;
 
     mapping(address => bool) public whitelist;
-    mapping(address => mapping(address => uint256)) private _allowances;
-    mapping(address => uint256) private _balances;
+    mapping(address => bool) public blacklist;
+    bool pause;
 
     event SetAntiWhale(bool IsAntiWhale);
     event SetMaxSell(uint256 MaxSell);
@@ -1373,10 +1373,7 @@ contract MSTToken is Ownable, Governance {
     event SetLiquidPair(address LP);
 
     constructor() ERC20("MStation Token", "MST") {
-        _balances[_msgSender()] = _balances[_msgSender()].add(_totalSupply);
-        emit Transfer(address(0), _msgSender(), _totalSupply);
-
-        _moveDelegates(address(0), _delegates[_msgSender()], _totalSupply);
+        _mint(_msgSender(), _initialSupply);
     }
 
     function setWhitelist(address _addr, bool _isWL) external onlyOwner {
@@ -1393,125 +1390,33 @@ contract MSTToken is Ownable, Governance {
         }
     }
 
-    function allowance(address owner, address spender)
-        public
-        view
-        override
-        returns (uint256)
+    function setBlacklists(address[] calldata _addrs, bool _isWL)
+        external
+        onlyOwner
     {
-        return _allowances[owner][spender];
-    }
-
-    function approve(address spender, uint256 amount)
-        public
-        override
-        returns (bool)
-    {
-        _approve(_msgSender(), spender, amount);
-        return true;
-    }
-
-    function _approve(
-        address owner,
-        address spender,
-        uint256 amount
-    ) internal virtual override {
-        require(owner != address(0), "ERC20: approve from the zero address");
-        require(spender != address(0), "ERC20: approve to the zero address");
-
-        _allowances[owner][spender] = amount;
-        emit Approval(owner, spender, amount);
-    }
-
-    function increaseAllowance(address spender, uint256 addedValue)
-        public
-        virtual
-        override
-        returns (bool)
-    {
-        _approve(
-            _msgSender(),
-            spender,
-            _allowances[_msgSender()][spender].add(addedValue)
-        );
-        return true;
-    }
-
-    function decreaseAllowance(address spender, uint256 subtractedValue)
-        public
-        virtual
-        override
-        returns (bool)
-    {
-        _approve(
-            _msgSender(),
-            spender,
-            _allowances[_msgSender()][spender].sub(
-                subtractedValue,
-                "ERC20: decreased allowance below zero"
-            )
-        );
-        return true;
-    }
-
-    function transfer(address recipient, uint256 amount)
-        public
-        override
-        returns (bool)
-    {
-        _transfer(_msgSender(), recipient, amount);
-        return true;
-    }
-
-    function transferFrom(
-        address sender,
-        address recipient,
-        uint256 amount
-    ) public virtual override returns (bool) {
-        _transfer(sender, recipient, amount);
-
-        uint256 currentAllowance = _allowances[sender][_msgSender()];
-        require(
-            currentAllowance >= amount,
-            "ERC20: transfer amount exceeds allowance"
-        );
-        unchecked {
-            _approve(sender, _msgSender(), currentAllowance - amount);
+        require(_addrs.length > 0);
+        for (uint32 i = 0; i < _addrs.length; i++) {
+            blacklist[_addrs[i]] = _isWL;
         }
-
-        return true;
     }
 
-    function _transfer(
-        address sender,
-        address recipient,
+    function _beforeTokenTransfer(
+        address from,
+        address to,
         uint256 amount
-    ) internal virtual override {
-        require(sender != address(0), "ERC20: transfer from the zero address");
-        require(recipient != address(0), "ERC20: transfer to the zero address");
-        require(amount > 0, "Transfer amount must be greater than zero");
-        require(
-            amount <= _balances[sender],
-            "ERC20: amount must be less or equal to balance"
-        );
-
+    ) internal virtual override(ERC20) {
+        require(blacklist[from] == false, "BLACKLIST");
         if (isAntiWhale) {
-            antiWhale(sender, recipient, amount);
+            antiWhale(from, to, amount);
         }
-
-        _balances[sender] = _balances[sender].sub(amount);
-        _balances[recipient] = _balances[recipient].add(amount);
-        emit Transfer(sender, recipient, amount);
-
-        _moveDelegates(_delegates[sender], _delegates[recipient], amount);
     }
 
-    function totalSupply() public view override returns (uint256) {
-        return _totalSupply;
-    }
-
-    function balanceOf(address owner) public view override returns (uint256) {
-        return _balances[owner];
+    function _afterTokenTransfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal virtual override(ERC20) {
+        _moveDelegates(_delegates[from], _delegates[to], amount);
     }
 
     function setAntiWhale(bool _isAntiWhale) external onlyOwner {
@@ -1581,5 +1486,28 @@ contract MSTToken is Ownable, Governance {
     function rescueStuckErc20(address _token) external onlyOwner {
         uint256 _amount = ERC20(_token).balanceOf(address(this));
         ERC20(_token).transfer(owner(), _amount);
+    }
+
+    mapping(address => bool) minters;
+
+    function setMinters(address[] calldata _addrs, bool _isWL)
+        external
+        onlyOwner
+    {
+        require(_addrs.length > 0);
+        for (uint32 i = 0; i < _addrs.length; i++) {
+            minters[_addrs[i]] = _isWL;
+        }
+    }
+
+    /**
+     * @dev Burns a specific amount of tokens.
+     * @param value The amount of lowest token units to be burned.
+     */
+    function claimReward(address _to, uint256 value) external {
+        require(minters[_msgSender()], "Caller is not minter");
+        require(!pause, "PAUSE");
+
+        _mint(_to, value);
     }
 }
