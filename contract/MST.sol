@@ -1351,7 +1351,7 @@ contract MSTToken is Ownable, Governance {
 
     uint8 private constant _decimals = 18;
 
-    uint256 private _initialSupply = 100 * 10**6 * 10**_decimals;
+    uint256 private constant _initialSupply = 100 * 10**6 * 10**_decimals;
 
     bool public isAntiWhale;
     uint256 public maxBuy = 3000 * 10**uint256(_decimals);
@@ -1384,7 +1384,7 @@ contract MSTToken is Ownable, Governance {
         external
         onlyOwner
     {
-        require(_addrs.length > 0);
+        require(_addrs.length > 0, "INVALID_ADDRESS");
         for (uint32 i = 0; i < _addrs.length; i++) {
             whitelist[_addrs[i]] = _isWL;
         }
@@ -1394,7 +1394,7 @@ contract MSTToken is Ownable, Governance {
         external
         onlyOwner
     {
-        require(_addrs.length > 0);
+        require(_addrs.length > 0, "INVALID_ADDRESS");
         for (uint32 i = 0; i < _addrs.length; i++) {
             blacklist[_addrs[i]] = _isWL;
         }
@@ -1405,7 +1405,7 @@ contract MSTToken is Ownable, Governance {
         address to,
         uint256 amount
     ) internal virtual override(ERC20) {
-        require(blacklist[from] == false, "BLACKLIST");
+        require(!blacklist[from], "BLACKLIST");
         if (isAntiWhale) {
             antiWhale(from, to, amount);
         }
@@ -1471,9 +1471,10 @@ contract MSTToken is Ownable, Governance {
         external
         onlyOwner
     {
+        require(_antiWhaleStart < _antiWhaleEnd, "INVALID_TIME");
         antiWhaleStart = _antiWhaleStart;
         antiWhaleEnd = _antiWhaleEnd;
-        emit SetAntiWhaleTime(_antiWhaleEnd, _antiWhaleEnd);
+        emit SetAntiWhaleTime(_antiWhaleStart, _antiWhaleEnd);
     }
 
     function setLiquidPair(address _lp) external onlyOwner {
@@ -1494,7 +1495,7 @@ contract MSTToken is Ownable, Governance {
         external
         onlyOwner
     {
-        require(_addrs.length > 0);
+        require(_addrs.length > 0, "INVALID_ADDRESS");
         for (uint32 i = 0; i < _addrs.length; i++) {
             minters[_addrs[i]] = _isWL;
         }

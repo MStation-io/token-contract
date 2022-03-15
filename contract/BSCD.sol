@@ -26,8 +26,6 @@ contract BSCD is
      */
     function claimReward(address _to, uint256 value) external {
         require(hasRole(MINTER_ROLE, _msgSender()), "Caller is not minter");
-        require(_to != address(0), "TO");
-        require(value > 0, "VALUE");
         require(!pause, "PAUSE");
 
         _mint(_to, value);
@@ -47,7 +45,7 @@ contract BSCD is
      * @dev Burns a specific amount of tokens.
      * @param value The amount of lowest token units to be burned.
      */
-    function burn(uint256 value) public {
+    function burn(uint256 value) external {
         _burn(msg.sender, value);
     }
 
@@ -57,7 +55,7 @@ contract BSCD is
      * @param _role role
      */
     function grantContractRole(string memory _role, address _wallet)
-        public
+        external
         onlyOwner
     {
         grantRole(keccak256(abi.encodePacked(_role)), _wallet);
@@ -69,7 +67,7 @@ contract BSCD is
      * @param _role role
      */
     function revokeContractRole(string memory _role, address _wallet)
-        public
+        external
         onlyOwner
     {
         revokeRole(keccak256(abi.encodePacked(_role)), _wallet);
