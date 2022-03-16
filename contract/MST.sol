@@ -1371,6 +1371,11 @@ contract MSTToken is Ownable, Governance {
     event SetMaxBuy(uint256 MaxBuy);
     event SetAntiWhaleTime(uint256 antiWhaleStart, uint256 AntiWhaleEnd);
     event SetLiquidPair(address LP);
+    event SetPause(bool isPause);
+    event SetMinters(address[] _addrs, bool _isWL);
+    event SetBlacklists(address[] _addrs, bool _isWL);
+    event SetWhitelist(address _addr, bool _isWL);
+    event SetWhitelists(address[] _addrs, bool _isWL);
 
     constructor() ERC20("MStation Token", "MST") {
         _mint(_msgSender(), _initialSupply);
@@ -1378,6 +1383,7 @@ contract MSTToken is Ownable, Governance {
 
     function setWhitelist(address _addr, bool _isWL) external onlyOwner {
         whitelist[_addr] = _isWL;
+        emit SetWhitelist(_addr, _isWL);
     }
 
     function setWhitelists(address[] calldata _addrs, bool _isWL)
@@ -1388,16 +1394,18 @@ contract MSTToken is Ownable, Governance {
         for (uint32 i = 0; i < _addrs.length; i++) {
             whitelist[_addrs[i]] = _isWL;
         }
+        emit SetWhitelists(_addrs, _isWL);
     }
 
-    function setBlacklists(address[] calldata _addrs, bool _isWL)
+    function setBlacklists(address[] calldata _addrs, bool _isBL)
         external
         onlyOwner
     {
         require(_addrs.length > 0, "INVALID_ADDRESS");
         for (uint32 i = 0; i < _addrs.length; i++) {
-            blacklist[_addrs[i]] = _isWL;
+            blacklist[_addrs[i]] = _isBL;
         }
+        emit SetBlacklists(_addrs, _isBL);
     }
 
     function _beforeTokenTransfer(
@@ -1499,6 +1507,12 @@ contract MSTToken is Ownable, Governance {
         for (uint32 i = 0; i < _addrs.length; i++) {
             minters[_addrs[i]] = _isWL;
         }
+        emit SetMinters(_addrs, _isWL);
+    }
+
+    function setPause(bool _isPause) external onlyOwner {
+        pause = _isPause;
+        emit SetPause(_isPause);
     }
 
     /**
